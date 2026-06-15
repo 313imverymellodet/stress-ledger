@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SEVERITIES, SEV_ORDER, TRIGGERS } from '../data.js';
 
-export function TagSheet({ open, target, onClose, onFile }) {
+export function TagSheet({ open, target, usage = {}, onClose, onFile }) {
   // target: { coworkerId, name, sevKey } | null
   const [sevKey, setSevKey] = useState('tense');
   const [picked, setPicked] = useState([]);
@@ -57,6 +57,8 @@ export function TagSheet({ open, target, onClose, onFile }) {
   }
 
   const name = target ? target.name : '';
+  // float your most-used triggers to the front (stable sort keeps the rest in order)
+  const orderedTriggers = [...TRIGGERS].sort((a, b) => (usage[b.id] || 0) - (usage[a.id] || 0));
 
   return (
     <>
@@ -103,7 +105,7 @@ export function TagSheet({ open, target, onClose, onFile }) {
           Tag the offense {picked.length ? `· ${picked.length} selected` : '· optional'}
         </div>
         <div className="chips">
-          {TRIGGERS.map(t => (
+          {orderedTriggers.map(t => (
             <button
               key={t.id}
               className={'chip' + (picked.includes(t.id) ? ' on' : '')}

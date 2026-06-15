@@ -73,6 +73,7 @@ export function quipFor(id) {
 
 // ---- weekdays + time-of-day blocks ----------------------------------------
 export const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const FULL_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 // 6 contiguous blocks covering all 24h (named per the spec)
 export const TIME_BLOCKS = [
   { id: 'early',      short: 'Early', full: 'Early (5–8am)',         test: h => h >= 5 && h < 8 },
@@ -227,7 +228,10 @@ export function computePeople(coworkers, incidents, now = Date.now()) {
 
   const map = {};
   coworkers.forEach(c => {
-    map[c.id] = { ...c, score: 0, count: 0, thisWeek: 0, lastWeek: 0, lastT: -Infinity };
+    map[c.id] = {
+      ...c, score: 0, count: 0, thisWeek: 0, lastWeek: 0, lastT: -Infinity,
+      mix: { mild: 0, tense: 0, melt: 0 }, // points contributed by each severity
+    };
   });
   incidents.forEach(inc => {
     const m = map[inc.coworkerId];
@@ -235,6 +239,7 @@ export function computePeople(coworkers, incidents, now = Date.now()) {
     const pts = SEVERITIES[inc.severity].pts;
     m.score += pts;
     m.count += 1;
+    m.mix[inc.severity] += pts;
     if (inc.timestamp >= thisWeekStart) m.thisWeek += pts;
     else if (inc.timestamp >= lastWeekStart) m.lastWeek += pts;
     if (inc.timestamp > m.lastT) m.lastT = inc.timestamp;
@@ -329,4 +334,65 @@ export function relativeTime(ts, now = Date.now()) {
   const w = Math.floor(d / 7);
   if (w < 5) return w + 'w ago';
   return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+// ---- per-person derivations (for the detail "case file") ------------------
+export function personTriggers(coworkerId, incidents) {
+  const t = {};
+  TRIGGERS.forEach(x => (t[x.id] = 0));
+  incidents.forEach(i => {
+    if (i.coworkerId === coworkerId && i.trigger && t[i.trigger] != null) t[i.trigger] += 1;
+  });
+  return TRIGGERS.map(x => ({ ...x, count: t[x.id] }))
+    .filter(x => x.count > 0)
+    .sort((a, b) => b.count - a.count);
+}
+
+// usage counts per trigger across all incidents (for floating recents to the top)
+export function triggerUsage(incidents) {
+  const t = {};
+  incidents.forEach(i => {
+    if (i.trigger) t[i.trigger] = (t[i.trigger] || 0) + 1;
+  });
+  return t;
+}
+
+// ---- plain-language read-out for the Patterns view ------------------------
+export function patternInsights(people, patterns) {
+  const { total, dayAvg, worstDay, triggers, meltdowns, peakBlock } = patterns;
+  if (!total) return [];
+  const out = [];
+
+  // worst weekday vs the average across days that have any data
+  const active = dayAvg.filter(v => v > 0);
+  const mean = active.length ? active.reduce((s, v) => s + v, 0) / active.length : 0;
+  if (mean > 0 && dayAvg[worstDay] >= mean * 1.4 && active.length > 1) {
+    const x = Math.round((dayAvg[worstDay] / mean) * 10) / 10;
+    out.push(`${FULL_DAYS[worstDay]}s run about ${x}× your average day.`);
+  }
+
+  // dominant trigger share
+  if (triggers.length) {
+    const top = triggers[0];
+    const tagged = triggers.reduce((s, t) => s + t.count, 0);
+    const share = Math.round((top.count / tagged) * 100);
+    if (share >= 30) out.push(`“${top.label}” drives ${share}% of your tagged incidents.`);
+  }
+
+  // top stressor's share of all points
+  if (people.length && people[0].score > 0) {
+    const allPts = people.reduce((s, p) => s + p.score, 0);
+    const share = Math.round((people[0].score / allPts) * 100);
+    if (share >= 35 && people.length > 1) {
+      out.push(`${people[0].name} alone accounts for ${share}% of your stress points.`);
+    }
+  }
+
+  // meltdown note, with timing if we have it
+  if (meltdowns > 0) {
+    const when = TIME_BLOCKS[peakBlock] ? ` — most often ${TIME_BLOCKS[peakBlock].full.split(' ')[0].toLowerCase()}` : '';
+    out.push(`${meltdowns} full meltdown${meltdowns === 1 ? '' : 's'} on record${when}.`);
+  }
+
+  return out.slice(0, 3);
 }

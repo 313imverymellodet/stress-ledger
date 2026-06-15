@@ -3,15 +3,16 @@
    When stress lands · top triggers · worst weekday
    ============================================================ */
 import React from 'react';
-import { DAYS, TIME_BLOCKS, heatColor } from '../data.js';
+import { DAYS, TIME_BLOCKS, heatColor, patternInsights } from '../data.js';
 
 function fmtAvg(v) {
   return Math.round(v * 10) / 10;
 }
 
-export function PatternsView({ patterns, peakLabel }) {
+export function PatternsView({ patterns, peakLabel, people = [] }) {
   const { grid, gmax, triggers, tmax, dayAvg, dmax, worstDay, total, meltdowns } = patterns;
   const topTriggers = triggers.slice(0, 6);
+  const insights = patternInsights(people, patterns);
 
   if (total === 0) {
     return (
@@ -46,6 +47,17 @@ export function PatternsView({ patterns, peakLabel }) {
           <span style={{ marginTop: 14 }}>your worst weekday</span>
         </div>
       </div>
+
+      {insights.length > 0 && (
+        <div className="panel insights">
+          <div className="panel-title">The read</div>
+          <ul className="insight-list">
+            {insights.map((s, i) => (
+              <li key={i}>{s}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* charts (single column on mobile, two columns on desktop) */}
       <div className="patterns-grid">

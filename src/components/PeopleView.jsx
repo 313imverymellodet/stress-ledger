@@ -2,11 +2,11 @@
    STRESS LEDGER — People view ("The Ledger")
    Reigning banner · add coworker · ledger cards · feed · reset
    ============================================================ */
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { SEVERITIES, TRIGGER_LABEL, quipFor, relativeTime, parseImport } from '../data.js';
 import { HeatMeter, Trend, Redact, SevMark, LogButtons } from './widgets.jsx';
 
-function ReignBanner({ person, hasPeople }) {
+function ReignBanner({ person, hasPeople, onLog, onOpenDetail }) {
   // empty: no coworkers at all
   if (!hasPeople) {
     return (
@@ -33,17 +33,20 @@ function ReignBanner({ person, hasPeople }) {
   }
   return (
     <div className="reign">
-      <div className="reign-kicker">Reigning stressor<span className="line" /></div>
       <div className="seal"><b>1</b><i>RANKED</i></div>
-      <div className="reign-name">{person.name}</div>
-      <div className="reign-epithet">{person.epithet}</div>
-      <div className="reign-row">
-        <div className="reign-score">
-          <b>{person.score}</b>
-          <span>stress<br />points</span>
+      <button className="reign-open" onClick={() => onOpenDetail(person.id)} aria-label={`Open ${person.name}’s case file`}>
+        <div className="reign-kicker">Reigning stressor<span className="line" /></div>
+        <div className="reign-name">{person.name}</div>
+        <div className="reign-epithet">{person.epithet}</div>
+        <div className="reign-row">
+          <div className="reign-score">
+            <b>{person.score}</b>
+            <span>stress<br />points</span>
+          </div>
+          <div className="reign-quip">{quipFor(person.id)}</div>
         </div>
-        <div className="reign-quip">{quipFor(person.id)}</div>
-      </div>
+      </button>
+      <LogButtons name={person.name} variant="dark" onLog={sevKey => onLog(person, sevKey)} />
     </div>
   );
 }
@@ -76,23 +79,26 @@ function AddCoworker({ onAdd }) {
   );
 }
 
-function LedgerCard({ person, rank, onLog, onDelete }) {
+function LedgerCard({ person, rank, fresh, onLog, onDelete, onOpenDetail }) {
   const [confirming, setConfirming] = useState(false);
   return (
-    <div className="slip">
-      <div className="slip-top">
-        <div className="rank">{String(rank).padStart(2, '0')}</div>
-        <div className="slip-id">
-          <div className="slip-name">{person.name}</div>
-          <div className="slip-epithet">{person.epithet}</div>
+    <div className={'slip' + (fresh ? ' fresh' : '')} data-cwid={person.id}>
+      <button className="slip-open" onClick={() => onOpenDetail(person.id)} aria-label={`Open ${person.name}’s case file`}>
+        <div className="slip-top">
+          <div className="rank">{String(rank).padStart(2, '0')}</div>
+          <div className="slip-id">
+            <div className="slip-name">{person.name}</div>
+            <div className="slip-epithet">{person.epithet}</div>
+          </div>
+          <div className="slip-score">
+            <b>{person.score}</b>
+            <span>pts</span>
+          </div>
+          <span className="slip-chev" aria-hidden="true">›</span>
         </div>
-        <div className="slip-score">
-          <b>{person.score}</b>
-          <span>pts</span>
-        </div>
-      </div>
+      </button>
 
-      <HeatMeter value={person.heat} />
+      <HeatMeter mix={person.mix} total={person.score} />
 
       <div className="slip-meta-row">
         <Trend kind={person.trend} delta={person.trendDelta} />
@@ -125,7 +131,7 @@ function LedgerCard({ person, rank, onLog, onDelete }) {
   );
 }
 
-function FeedEntry({ inc, peopleById, fresh, now, onUndo }) {
+function FeedEntry({ inc, peopleById, fresh, now, onStrike }) {
   const person = peopleById[inc.coworkerId];
   const sev = SEVERITIES[inc.severity];
   const trigLabel = inc.trigger ? TRIGGER_LABEL[inc.trigger] : null;
@@ -147,8 +153,8 @@ function FeedEntry({ inc, peopleById, fresh, now, onUndo }) {
           {fresh && <span className="filed-tag">Filed</span>}
         </div>
       </div>
-      <button className="entry-undo" onClick={() => onUndo(inc.id)} aria-label="Undo this incident">
-        ↩ undo
+      <button className="entry-undo" onClick={() => onStrike(inc.id)} aria-label="Strike this incident">
+        strike
       </button>
     </div>
   );
@@ -158,11 +164,13 @@ export function PeopleView({
   people,
   incidents,
   freshIds,
+  freshCoworkerId,
   now,
   onLog,
   onAdd,
   onDelete,
-  onUndo,
+  onStrike,
+  onOpenDetail,
   onClearAll,
   onExport,
   onImport,
@@ -171,7 +179,15 @@ export function PeopleView({
   const [pendingImport, setPendingImport] = useState(null);
   const [importError, setImportError] = useState(null);
   const fileInputRef = useRef(null);
+  const scrollRef = useRef(null);
   const hasData = people.length > 0 || incidents.length > 0;
+
+  // scroll a newly added coworker into view
+  useEffect(() => {
+    if (!freshCoworkerId || !scrollRef.current) return;
+    const el = scrollRef.current.querySelector(`[data-cwid="${freshCoworkerId}"]`);
+    if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [freshCoworkerId]);
 
   function handleFile(e) {
     const file = e.target.files && e.target.files[0];
@@ -197,12 +213,20 @@ export function PeopleView({
   }
 
   const reigning = people[0];
+  const reignActive = reigning && reigning.score > 0; // banner owns #1 only when earned
+  const listPeople = reignActive ? people.slice(1) : people;
+  const rankOffset = reignActive ? 2 : 1;
   const peopleById = Object.fromEntries(people.map(p => [p.id, p]));
   const feed = incidents.slice(0, 15);
 
   return (
-    <div className="scroll">
-      <ReignBanner person={reigning} hasPeople={people.length > 0} />
+    <div className="scroll" ref={scrollRef}>
+      <ReignBanner
+        person={reigning}
+        hasPeople={people.length > 0}
+        onLog={onLog}
+        onOpenDetail={onOpenDetail}
+      />
 
       <div className="people-grid">
       <div className="col col-ledger">
@@ -215,9 +239,20 @@ export function PeopleView({
 
       <AddCoworker onAdd={onAdd} />
 
-      {people.map((p, i) => (
-        <LedgerCard key={p.id} person={p} rank={i + 1} onLog={onLog} onDelete={onDelete} />
+      {listPeople.map((p, i) => (
+        <LedgerCard
+          key={p.id}
+          person={p}
+          rank={i + rankOffset}
+          fresh={p.id === freshCoworkerId}
+          onLog={onLog}
+          onDelete={onDelete}
+          onOpenDetail={onOpenDetail}
+        />
       ))}
+      {reignActive && listPeople.length === 0 && (
+        <div className="feed-empty">No challengers yet. Add another name above.</div>
+      )}
 
       </div>
       <div className="col col-feed">
@@ -236,7 +271,7 @@ export function PeopleView({
               peopleById={peopleById}
               fresh={freshIds.includes(inc.id)}
               now={now}
-              onUndo={onUndo}
+              onStrike={onStrike}
             />
           ))
         )}

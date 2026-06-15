@@ -229,15 +229,17 @@ body{
 }
 
 /* heat meter */
+/* severity-mix bar: segments sized by share of mild / tense / meltdown points */
 .meter{
   margin:14px 0 13px; height:8px; border-radius:100px;
-  background:rgba(28,27,24,.10); position:relative; overflow:hidden;
+  background:rgba(28,27,24,.12); position:relative; overflow:hidden;
+  display:flex; gap:1.5px;
 }
-.meter > i{
-  position:absolute; left:0; top:0; bottom:0; border-radius:100px;
-  background:linear-gradient(90deg,var(--t-calm),var(--t-mild) 46%,var(--t-tense) 72%,var(--t-melt));
-  transition:width .6s var(--spring);
-}
+.meter > i{ height:100%; transition:width .5s var(--spring); }
+.meter .seg-mild{ background:var(--t-mild); }
+.meter .seg-tense{ background:var(--t-tense); }
+.meter .seg-melt{ background:var(--t-melt); }
+.meter.empty{ background:rgba(28,27,24,.12); }
 .meter-ticks{ display:none; }
 
 .slip-meta-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:13px; }
@@ -718,6 +720,126 @@ body{
   .nav{ justify-content:center; gap:28px; }
   .nav .tab{ flex:0 0 auto; min-width:160px; }
 }
+
+/* ============================================================
+   DESIGN PASS — drill-in detail, mix bar, toast, insights,
+   tappable rows, dark log buttons, fresh flourish, transitions.
+   ============================================================ */
+
+/* ledger card: tappable identity row + chevron */
+.slip-open{
+  display:block; width:100%; text-align:left; background:none; border:0;
+  padding:0; margin:0; cursor:pointer; color:inherit; font:inherit;
+}
+.slip-chev{
+  flex:0 0 auto; align-self:center; margin-left:2px;
+  font-size:22px; line-height:1; color:var(--paper-faint); font-weight:400;
+  transition:transform .15s var(--spring), color .15s;
+}
+.slip-open:hover .slip-chev{ color:var(--ink); transform:translateX(2px); }
+
+/* fresh-coworker flourish (cream-card variant of the feed glow) */
+.slip.fresh{ animation:entry-in .5s var(--spring) both; box-shadow:0 0 0 2px rgba(224,53,42,.5), var(--shadow-sm); }
+
+/* log buttons on dark surfaces (reign banner + detail) */
+.reign-open{
+  display:block; width:100%; text-align:left; background:none; border:0;
+  padding:0; margin:0; cursor:pointer; color:inherit; font:inherit; position:relative; z-index:1;
+}
+.reign .log-row{ margin-top:16px; position:relative; z-index:1; }
+.log-row--dark .logbtn{ background:rgba(255,255,255,.08); }
+.log-row--dark .logbtn .lbl{ color:#fff; }
+.log-row--dark .logbtn.mild .pts{ color:var(--t-mild); opacity:1; }
+.log-row--dark .logbtn.tense .pts{ color:var(--t-tense); opacity:1; }
+.log-row--dark .logbtn.melt .pts{ color:var(--t-melt); opacity:1; }
+
+/* ---- person detail "case file" ---- */
+.detail{
+  position:absolute; inset:0; z-index:30; background:var(--board);
+  display:flex; flex-direction:column; animation:detail-in .28s var(--spring);
+}
+@keyframes detail-in{ from{ transform:translateX(14%); opacity:0; } to{ transform:none; opacity:1; } }
+.detail-bar{
+  flex:0 0 auto; display:flex; align-items:center; justify-content:space-between;
+  padding:max(14px, env(safe-area-inset-top)) 16px 12px;
+  background:rgba(10,10,12,.72);
+  -webkit-backdrop-filter:saturate(180%) blur(22px); backdrop-filter:saturate(180%) blur(22px);
+  border-bottom:.5px solid var(--board-line);
+}
+.detail-back{
+  background:none; border:0; cursor:pointer; color:var(--ink);
+  font-family:var(--sans); font-weight:600; font-size:16px; letter-spacing:-.01em;
+  display:flex; align-items:center; gap:3px; padding:6px 8px 6px 0; min-height:44px;
+}
+.detail-caseno{ font-family:var(--mono); font-size:10px; letter-spacing:.08em; color:var(--board-dim); }
+.detail-scroll{ flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:16px 16px 40px; }
+.detail-scroll::-webkit-scrollbar{ width:0; }
+
+.detail-hero{
+  position:relative; background:var(--paper); color:var(--paper-ink);
+  border-radius:var(--r-card); padding:20px 20px 18px; margin-bottom:16px; box-shadow:var(--shadow-sm);
+}
+.detail-rankseal{
+  position:absolute; top:18px; right:18px; width:46px; height:46px; display:grid; place-items:center;
+  border-radius:50%; background:rgba(224,53,42,.1); box-shadow:inset 0 0 0 1.5px rgba(224,53,42,.4);
+}
+.detail-rankseal b{ font-family:var(--sans); font-weight:800; font-size:18px; color:var(--ink); line-height:1; }
+.detail-rankseal i{ position:absolute; bottom:-14px; font-style:normal; font-family:var(--mono); font-size:7.5px; letter-spacing:.08em; color:var(--paper-faint); }
+.detail-name{
+  background:none; border:0; padding:0; cursor:pointer; text-align:left;
+  font-family:var(--sans); font-weight:800; font-size:30px; line-height:1.05; letter-spacing:-.02em;
+  color:var(--paper-ink); display:inline-flex; align-items:baseline; gap:8px; max-width:100%;
+}
+.edit-hint{ font-family:var(--mono); font-size:10px; font-weight:400; letter-spacing:.04em; color:var(--paper-faint); text-transform:uppercase; }
+.detail-rename{ margin:0; }
+.detail-name-input{
+  width:100%; background:rgba(28,27,24,.05); border:.5px solid var(--paper-line); border-radius:10px;
+  padding:8px 12px; font-family:var(--sans); font-weight:800; font-size:27px; letter-spacing:-.02em; color:var(--paper-ink);
+}
+.detail-epithet{ font-family:var(--sans); font-size:14px; color:var(--paper-faint); margin-top:6px; letter-spacing:-.005em; }
+.detail-stats{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:16px 0 2px; }
+.detail-score{ display:flex; align-items:baseline; gap:8px; }
+.detail-score b{ font-family:var(--sans); font-weight:800; font-size:34px; line-height:.85; letter-spacing:-.03em; color:var(--paper-ink); font-variant-numeric:tabular-nums; }
+.detail-score span{ font-family:var(--sans); font-weight:500; font-size:10px; letter-spacing:.04em; text-transform:uppercase; color:var(--paper-faint); line-height:1.15; }
+.mix-legend{ display:flex; gap:14px; margin:10px 0 16px; }
+.mix-legend span{ display:inline-flex; align-items:center; gap:6px; font-family:var(--sans); font-size:11.5px; color:var(--paper-faint); }
+.mix-legend i{ width:9px; height:9px; border-radius:3px; }
+.mix-legend .dot-mild{ background:var(--t-mild); }
+.mix-legend .dot-tense{ background:var(--t-tense); }
+.mix-legend .dot-melt{ background:var(--t-melt); }
+
+/* ---- undo-grace toast ---- */
+.toast{
+  position:absolute; left:50%; z-index:50; transform:translateX(-50%);
+  bottom:calc(88px + env(safe-area-inset-bottom));
+  display:flex; align-items:center; gap:14px;
+  background:rgba(28,28,30,.96); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
+  border:.5px solid var(--board-line); border-radius:100px; padding:11px 12px 11px 18px; box-shadow:var(--shadow);
+  animation:toast-in .3s var(--spring);
+}
+@keyframes toast-in{ from{ opacity:0; transform:translate(-50%,12px); } to{ opacity:1; transform:translate(-50%,0); } }
+.toast-msg{ font-family:var(--sans); font-size:13.5px; font-weight:500; color:var(--board-ink); letter-spacing:-.01em; }
+.toast-undo{
+  background:var(--ink); color:#fff; border:0; cursor:pointer; border-radius:100px;
+  padding:7px 16px; font-family:var(--sans); font-weight:600; font-size:13px; letter-spacing:-.01em;
+}
+.toast-undo:active{ transform:scale(.96); background:var(--ink-deep); }
+
+/* ---- patterns: "the read" insight list ---- */
+.insights .panel-title{ margin-bottom:10px; }
+.insight-list{ list-style:none; display:flex; flex-direction:column; gap:10px; }
+.insight-list li{
+  font-family:var(--sans); font-size:14px; line-height:1.4; letter-spacing:-.01em; color:var(--board-ink);
+  padding-left:18px; position:relative;
+}
+.insight-list li::before{ content:"›"; position:absolute; left:2px; top:-1px; color:var(--ink); font-weight:700; }
+
+/* heatmap empty cells: dimmer so lit cells pop */
+.heat-cell{ background:rgba(255,255,255,.035); }
+
+/* cross-fade the view on tab switch (plays on mount of each view) */
+.scroll{ animation:view-in .22s ease both; }
+@keyframes view-in{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:none; } }
 
 /* ============================================================
    REDUCED MOTION — honour the user's preference

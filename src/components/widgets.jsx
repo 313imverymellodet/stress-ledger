@@ -4,11 +4,28 @@
 import React from 'react';
 import { SEVERITIES } from '../data.js';
 
-// thermometer meter on each ledger card
-export function HeatMeter({ value }) {
+// severity-mix bar: shows what share of a person's score is mild / tense / meltdown
+export function HeatMeter({ mix, total }) {
+  if (!total) {
+    return <div className="meter empty" role="img" aria-label="No incidents on file" />;
+  }
+  const segs = [
+    { key: 'mild', cls: 'seg-mild' },
+    { key: 'tense', cls: 'seg-tense' },
+    { key: 'melt', cls: 'seg-melt' },
+  ].filter(s => mix[s.key] > 0);
+  const label =
+    `Severity mix: ${mix.mild} mild, ${mix.tense} tense, ${mix.melt} meltdown points`;
   return (
-    <div className="meter" role="img" aria-label={`Stress heat ${Math.round(value * 100)}%`}>
-      <i style={{ width: Math.max(6, value * 100) + '%' }} />
+    <div className="meter" role="img" aria-label={label}>
+      {segs.map(s => (
+        <i
+          key={s.key}
+          className={s.cls}
+          style={{ width: (mix[s.key] / total) * 100 + '%' }}
+          title={`${SEVERITIES[s.key].label}: ${mix[s.key]} pts`}
+        />
+      ))}
     </div>
   );
 }
@@ -49,10 +66,10 @@ export function SevMark({ sevKey }) {
   );
 }
 
-// the three quick-log buttons used on each card
-export function LogButtons({ onLog, name }) {
+// the three quick-log buttons used on each card (variant="dark" for the banner)
+export function LogButtons({ onLog, name, variant }) {
   return (
-    <div className="log-row">
+    <div className={'log-row' + (variant === 'dark' ? ' log-row--dark' : '')}>
       <button className="logbtn mild" onClick={() => onLog('mild')} aria-label={`Log a Mild incident for ${name}`}>
         <span className="lbl">Mild</span>
         <span className="pts">+1</span>

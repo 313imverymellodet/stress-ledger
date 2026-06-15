@@ -14,10 +14,12 @@ import {
   computePeople,
   computePatterns,
   headerStats,
+  triggerUsage,
 } from './data.js';
 import { Masthead } from './components/Masthead.jsx';
 import { PeopleView } from './components/PeopleView.jsx';
 import { PatternsView } from './components/PatternsView.jsx';
+import { PersonDetail } from './components/PersonDetail.jsx';
 import { TagSheet } from './components/TagSheet.jsx';
 import { StampLayer } from './components/Stamp.jsx';
 import { IconLedger, IconPatterns } from './components/widgets.jsx';
@@ -31,10 +33,15 @@ export default function App() {
   const [stamp, setStamp] = useState(null);
   const [shake, setShake] = useState(false);
   const [freshIds, setFreshIds] = useState([]);
+  const [freshCoworkerId, setFreshCoworkerId] = useState(null);
+  const [detailId, setDetailId] = useState(null);
+  const [toast, setToast] = useState(null); // { inc } — recently struck incident
   const [now, setNow] = useState(() => Date.now());
 
   const seqRef = useRef(0);
   const freshTimer = useRef(null);
+  const coworkerTimer = useRef(null);
+  const toastTimer = useRef(null);
 
   // persist on every change
   useEffect(() => {
@@ -50,20 +57,33 @@ export default function App() {
   const people = useMemo(() => computePeople(coworkers, incidents, now), [coworkers, incidents, now]);
   const patterns = useMemo(() => computePatterns(incidents), [incidents]);
   const stats = useMemo(() => headerStats(incidents, now), [incidents, now]);
+  const usage = useMemo(() => triggerUsage(incidents), [incidents]);
+
+  // the person whose detail "case file" is open (and their rank), if any
+  const detailIndex = detailId ? people.findIndex(p => p.id === detailId) : -1;
+  const detailPerson = detailIndex >= 0 ? people[detailIndex] : null;
 
   const peakLabel = patterns.total ? TIME_BLOCKS[patterns.peakBlock].full.toLowerCase() : null;
   const caseNo = useMemo(() => '26-' + String(4000 + incidents.length).slice(-4), [incidents.length]);
 
   // ---- coworker management --------------------------------------------------
   function addCoworker(name) {
-    setCoworkers(prev => {
-      const c = { id: newId('cw'), name, epithet: nextEpithet(prev.length) };
-      return [...prev, c];
-    });
+    const c = { id: newId('cw'), name, epithet: nextEpithet(coworkers.length) };
+    setCoworkers(prev => [...prev, c]);
+    // flag for the highlight + scroll-into-view flourish (session only)
+    setFreshCoworkerId(c.id);
+    clearTimeout(coworkerTimer.current);
+    coworkerTimer.current = setTimeout(() => setFreshCoworkerId(null), 1800);
   }
   function deleteCoworker(id) {
     setCoworkers(prev => prev.filter(c => c.id !== id));
     setIncidents(prev => prev.filter(inc => inc.coworkerId !== id));
+    setDetailId(d => (d === id ? null : d)); // close the file if it was open
+  }
+  function renameCoworker(id, name) {
+    const v = name.trim().slice(0, 40);
+    if (!v) return;
+    setCoworkers(prev => prev.map(c => (c.id === id ? { ...c, name: v } : c)));
   }
 
   // ---- logging --------------------------------------------------------------
@@ -110,8 +130,23 @@ export default function App() {
     setTimeout(() => setStamp(null), 1300);
   }
 
-  function undoIncident(id) {
-    setIncidents(prev => prev.filter(inc => inc.id !== id));
+  // strike an incident, but offer a brief restore window (undo grace)
+  function strikeIncident(id) {
+    const inc = incidents.find(i => i.id === id);
+    if (!inc) return;
+    setIncidents(prev => prev.filter(i => i.id !== id));
+    clearTimeout(toastTimer.current);
+    setToast({ inc });
+    toastTimer.current = setTimeout(() => setToast(null), 5000);
+  }
+  function restoreIncident() {
+    setToast(t => {
+      if (t && t.inc) {
+        setIncidents(prev => [t.inc, ...prev].sort((a, b) => b.timestamp - a.timestamp));
+      }
+      return null;
+    });
+    clearTimeout(toastTimer.current);
   }
 
   function clearAll() {
@@ -149,17 +184,19 @@ export default function App() {
           people={people}
           incidents={incidents}
           freshIds={freshIds}
+          freshCoworkerId={freshCoworkerId}
           now={now}
           onLog={handleQuickLog}
           onAdd={addCoworker}
           onDelete={deleteCoworker}
-          onUndo={undoIncident}
+          onStrike={strikeIncident}
+          onOpenDetail={setDetailId}
           onClearAll={clearAll}
           onExport={exportData}
           onImport={importData}
         />
       ) : (
-        <PatternsView patterns={patterns} peakLabel={peakLabel} />
+        <PatternsView patterns={patterns} peakLabel={peakLabel} people={people} />
       )}
 
       <nav className="nav">
@@ -173,12 +210,34 @@ export default function App() {
         </button>
       </nav>
 
+      {detailPerson && (
+        <PersonDetail
+          person={detailPerson}
+          rank={detailIndex + 1}
+          incidents={incidents}
+          now={now}
+          onClose={() => setDetailId(null)}
+          onLog={handleQuickLog}
+          onStrike={strikeIncident}
+          onRename={renameCoworker}
+          onDelete={deleteCoworker}
+        />
+      )}
+
       <TagSheet
         open={sheet.open}
         target={sheet.target}
+        usage={usage}
         onClose={() => setSheet({ open: false, target: null })}
         onFile={commit}
       />
+
+      {toast && (
+        <div className="toast" role="status">
+          <span className="toast-msg">Incident struck</span>
+          <button className="toast-undo" onClick={restoreIncident}>Undo</button>
+        </div>
+      )}
 
       <StampLayer stamp={stamp} />
     </div>

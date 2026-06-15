@@ -36,12 +36,14 @@ npm run preview  # serve the production build locally to check it
 
 - **The Ledger** (first tab)
   - **Add a name** to start a case file on a coworker.
-  - Each card shows their total **stress points**, a **heat meter**, a **trend** (this week vs. last week — *getting worse / easing off / holding steady*), and how many incidents are on file.
-  - Tap **Mild (+1)**, **Tense (+2)**, or **Meltdown (+3)** to open the **"What happened?"** sheet. Pick a severity, tap any **trigger chips** that apply (or **skip the paperwork**), and **File it**.
-  - The **Recent Incidents** feed lists your latest entries with a relative timestamp and an **undo** button.
+  - Each card shows their total **stress points**, a **severity-mix bar** (how much of their score is mild / tense / meltdown), a **trend** (this week vs. last week — *getting worse / easing off / holding steady*), and how many incidents are on file. The reigning #1 is the banner up top; the list below starts at #2.
+  - **Tap a card** (or the banner) to open that person's **case file** — their full timeline, their signature triggers, a rename control, and quick-log buttons.
+  - Tap **Mild (+1)**, **Tense (+2)**, or **Meltdown (+3)** to open the **"What happened?"** sheet. Pick a severity, tap any **trigger chips** that apply (your most-used float to the top), or **skip the paperwork**, and **File it**.
+  - The **Recent Incidents** feed lists your latest entries with a relative timestamp and a **strike** action — striking shows a brief **Undo** toast in case of a mis-tap.
   - **✕** on a card strikes that coworker from the record (with a confirm step).
   - Under **Move the file between devices**: **Back up** downloads your whole ledger as a JSON file, **Restore** loads one back in, and **Shred the whole file** wipes everything (with a confirm step).
 - **Patterns** (second tab)
+  - **The read** — plain-language insights auto-generated from your data (worst weekday vs. average, your top trigger's share, your top stressor's share, meltdown timing).
   - **When stress lands** — a heatmap of stress points by weekday × time-of-day block (Early / Morning / Midday / Afternoon / Evening / After-hours).
   - **What sets it off** — your most frequent triggers.
   - **Worst day of the week** — average stress points per weekday.
