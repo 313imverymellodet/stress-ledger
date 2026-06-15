@@ -620,8 +620,37 @@ body{
   letter-spacing:-.01em; padding:18px 4px; text-align:center; line-height:1.5;
 }
 
-/* ---- clear-all danger zone ---- */
-.danger{ margin:26px 2px 4px; }
+/* ---- records zone: export / import / clear-all ---- */
+.records{ margin:30px 2px 4px; display:flex; flex-direction:column; gap:11px; }
+.records-head{
+  font-family:var(--sans); font-weight:600; font-size:13px;
+  letter-spacing:.06em; text-transform:uppercase; color:var(--board-faint);
+}
+.data-tools{ display:flex; gap:9px; }
+.data-btn{
+  flex:1; cursor:pointer; border:.5px solid var(--board-line);
+  background:var(--board-2); color:var(--board-faint);
+  border-radius:var(--r-mid); padding:13px; font-family:var(--sans);
+  font-weight:600; font-size:14px; letter-spacing:-.01em; transition:.15s var(--spring);
+}
+.data-btn:hover{ color:var(--board-ink); border-color:rgba(255,255,255,.2); }
+.data-btn:disabled{ opacity:.4; cursor:default; }
+.data-btn:disabled:hover{ color:var(--board-faint); border-color:var(--board-line); }
+.file-hidden{
+  position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; opacity:0;
+}
+.records-note{
+  font-family:var(--sans); font-size:11.5px; line-height:1.45; letter-spacing:-.005em;
+  color:var(--board-dim);
+}
+.import-msg.err{
+  font-family:var(--sans); font-size:12.5px; line-height:1.4; letter-spacing:-.01em;
+  color:var(--t-melt); background:rgba(255,69,58,.1);
+  border:.5px solid rgba(255,69,58,.3); border-radius:var(--r-mid); padding:11px 13px;
+}
+
+/* ---- clear-all danger button ---- */
 .danger-btn{
   width:100%; cursor:pointer; border:.5px solid rgba(224,53,42,.28);
   background:transparent; color:var(--board-dim);

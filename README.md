@@ -40,13 +40,25 @@ npm run preview  # serve the production build locally to check it
   - Tap **Mild (+1)**, **Tense (+2)**, or **Meltdown (+3)** to open the **"What happened?"** sheet. Pick a severity, tap any **trigger chips** that apply (or **skip the paperwork**), and **File it**.
   - The **Recent Incidents** feed lists your latest entries with a relative timestamp and an **undo** button.
   - **✕** on a card strikes that coworker from the record (with a confirm step).
-  - **Shred the whole file** wipes everything (with a confirm step).
+  - Under **Move the file between devices**: **Back up** downloads your whole ledger as a JSON file, **Restore** loads one back in, and **Shred the whole file** wipes everything (with a confirm step).
 - **Patterns** (second tab)
   - **When stress lands** — a heatmap of stress points by weekday × time-of-day block (Early / Morning / Midday / Afternoon / Evening / After-hours).
   - **What sets it off** — your most frequent triggers.
   - **Worst day of the week** — average stress points per weekday.
 
 The header always shows **incidents this week · all-time incidents filed · total stress points**.
+
+### Moving your ledger between devices
+
+There's no account and no server, so data doesn't sync automatically — you move it yourself with a backup file:
+
+1. On the device that has your ledger, scroll to **Move the file between devices** and tap **Back up**. This downloads `stress-ledger-YYYY-MM-DD.json`.
+2. Get that file onto the other device (AirDrop, email it to yourself, a USB stick, your cloud drive — whatever).
+3. On the other device, open the app and tap **Restore**, then pick the file.
+   - If that device is empty, it loads straight in.
+   - If it already has data, you'll get a confirm showing both counts — **Restore replaces that device's ledger** (it doesn't merge).
+
+Imported files are validated defensively: anything that isn't a real Stress Ledger backup is rejected with a message, and individual records with bad/unknown fields are dropped rather than trusted. The same backup file is also your safety net against clearing browser data.
 
 ---
 

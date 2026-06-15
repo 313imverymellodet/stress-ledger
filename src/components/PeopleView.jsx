@@ -2,8 +2,8 @@
    STRESS LEDGER — People view ("The Ledger")
    Reigning banner · add coworker · ledger cards · feed · reset
    ============================================================ */
-import React, { useState } from 'react';
-import { SEVERITIES, TRIGGER_LABEL, quipFor, relativeTime } from '../data.js';
+import React, { useState, useRef } from 'react';
+import { SEVERITIES, TRIGGER_LABEL, quipFor, relativeTime, parseImport } from '../data.js';
 import { HeatMeter, Trend, Redact, SevMark, LogButtons } from './widgets.jsx';
 
 function ReignBanner({ person, hasPeople }) {
@@ -154,8 +154,48 @@ function FeedEntry({ inc, peopleById, fresh, now, onUndo }) {
   );
 }
 
-export function PeopleView({ people, incidents, freshIds, now, onLog, onAdd, onDelete, onUndo, onClearAll }) {
+export function PeopleView({
+  people,
+  incidents,
+  freshIds,
+  now,
+  onLog,
+  onAdd,
+  onDelete,
+  onUndo,
+  onClearAll,
+  onExport,
+  onImport,
+}) {
   const [confirmClear, setConfirmClear] = useState(false);
+  const [pendingImport, setPendingImport] = useState(null);
+  const [importError, setImportError] = useState(null);
+  const fileInputRef = useRef(null);
+  const hasData = people.length > 0 || incidents.length > 0;
+
+  function handleFile(e) {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = ''; // let the same file be re-selected later
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = parseImport(String(reader.result));
+        setImportError(null);
+        if (hasData) {
+          setPendingImport(parsed); // confirm before overwriting
+        } else {
+          onImport(parsed); // empty device — just load it
+        }
+      } catch (err) {
+        setPendingImport(null);
+        setImportError(err.message || 'Could not read that file.');
+      }
+    };
+    reader.onerror = () => setImportError('Could not read that file.');
+    reader.readAsText(file);
+  }
+
   const reigning = people[0];
   const peopleById = Object.fromEntries(people.map(p => [p.id, p]));
   const feed = incidents.slice(0, 15);
@@ -198,9 +238,60 @@ export function PeopleView({ people, incidents, freshIds, now, onLog, onAdd, onD
         )}
       </div>
 
-      {(people.length > 0 || incidents.length > 0) && (
-        <div className="danger">
-          {confirmClear ? (
+      <div className="records">
+        <div className="records-head">Move the file between devices</div>
+        <div className="data-tools">
+          <button className="data-btn" onClick={onExport} disabled={!hasData}>
+            ⤓ Back up
+          </button>
+          <button className="data-btn" onClick={() => fileInputRef.current && fileInputRef.current.click()}>
+            ⤒ Restore
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json,.json"
+            className="file-hidden"
+            tabIndex={-1}
+            aria-hidden="true"
+            onChange={handleFile}
+          />
+        </div>
+        <div className="records-note">
+          Back up here, then Restore the downloaded file on your other device. Restoring replaces that device’s ledger.
+        </div>
+
+        {importError && (
+          <div className="import-msg err" role="alert">
+            {importError}
+          </div>
+        )}
+
+        {pendingImport && (
+          <div className="confirm-bar danger-confirm" role="alertdialog" aria-label="Replace data with import?">
+            <span className="confirm-q">
+              Replace this device’s ledger ({people.length} {people.length === 1 ? 'name' : 'names'} ·{' '}
+              {incidents.length} incident{incidents.length === 1 ? '' : 's'}) with the file (
+              {pendingImport.coworkers.length} {pendingImport.coworkers.length === 1 ? 'name' : 'names'} ·{' '}
+              {pendingImport.incidents.length} incident{pendingImport.incidents.length === 1 ? '' : 's'})?
+            </span>
+            <div className="confirm-actions">
+              <button className="cf-no" onClick={() => setPendingImport(null)}>Cancel</button>
+              <button
+                className="cf-yes"
+                onClick={() => {
+                  onImport(pendingImport);
+                  setPendingImport(null);
+                }}
+              >
+                Replace
+              </button>
+            </div>
+          </div>
+        )}
+
+        {hasData &&
+          (confirmClear ? (
             <div className="confirm-bar danger-confirm" role="alertdialog" aria-label="Clear all data?">
               <span className="confirm-q">Shred everything? Wipes every coworker and incident on this device.</span>
               <div className="confirm-actions">
@@ -220,9 +311,8 @@ export function PeopleView({ people, incidents, freshIds, now, onLog, onAdd, onD
             <button className="danger-btn" onClick={() => setConfirmClear(true)}>
               Shred the whole file
             </button>
-          )}
-        </div>
-      )}
+          ))}
+      </div>
 
       <div className="spacer" />
     </div>

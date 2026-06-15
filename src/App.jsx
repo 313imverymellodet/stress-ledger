@@ -10,6 +10,7 @@ import {
   saveState,
   newId,
   nextEpithet,
+  serializeState,
   computePeople,
   computePatterns,
   headerStats,
@@ -119,6 +120,26 @@ export default function App() {
     setFreshIds([]);
   }
 
+  // ---- export / import (move the ledger between devices) --------------------
+  function exportData() {
+    const text = serializeState(coworkers, incidents);
+    const blob = new Blob([text], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `stress-ledger-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+
+  function importData(parsed) {
+    setCoworkers(parsed.coworkers);
+    setIncidents(parsed.incidents);
+    setFreshIds([]);
+  }
+
   return (
     <div className={'phone' + (shake ? ' shake' : '')}>
       <Masthead caseNo={caseNo} stats={stats} />
@@ -134,6 +155,8 @@ export default function App() {
           onDelete={deleteCoworker}
           onUndo={undoIncident}
           onClearAll={clearAll}
+          onExport={exportData}
+          onImport={importData}
         />
       ) : (
         <PatternsView patterns={patterns} peakLabel={peakLabel} />

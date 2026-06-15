@@ -159,6 +159,67 @@ export function saveState(state) {
   }
 }
 
+// ---- export / import (move your ledger between devices) -------------------
+export function serializeState(coworkers, incidents) {
+  return JSON.stringify(
+    { version: 1, exportedAt: new Date().toISOString(), coworkers, incidents },
+    null,
+    2,
+  );
+}
+
+// Parse + defensively validate an imported file. Throws a friendly Error on
+// anything that isn't a usable Stress Ledger export. Unknown/invalid records
+// are dropped rather than trusted.
+export function parseImport(text) {
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error('That doesn’t look like a valid file (couldn’t read the JSON).');
+  }
+  if (!data || typeof data !== 'object' || !Array.isArray(data.coworkers) || !Array.isArray(data.incidents)) {
+    throw new Error('That file isn’t a Stress Ledger backup — no coworkers/incidents found.');
+  }
+
+  const coworkers = [];
+  const ids = new Set();
+  data.coworkers.forEach(c => {
+    if (!c || typeof c.name !== 'string' || !c.name.trim()) return;
+    const id = typeof c.id === 'string' && c.id ? c.id : newId('cw');
+    if (ids.has(id)) return;
+    ids.add(id);
+    coworkers.push({
+      id,
+      name: c.name.trim().slice(0, 40),
+      epithet:
+        typeof c.epithet === 'string' && c.epithet ? c.epithet : nextEpithet(coworkers.length),
+    });
+  });
+
+  const incidents = [];
+  data.incidents.forEach(inc => {
+    if (!inc || typeof inc !== 'object') return;
+    if (!SEVERITIES[inc.severity]) return;
+    if (!ids.has(inc.coworkerId)) return;
+    const ts = Number(inc.timestamp);
+    if (!Number.isFinite(ts)) return;
+    incidents.push({
+      id: typeof inc.id === 'string' && inc.id ? inc.id : newId('inc'),
+      coworkerId: inc.coworkerId,
+      severity: inc.severity,
+      trigger: inc.trigger && TRIGGER_LABEL[inc.trigger] ? inc.trigger : null,
+      timestamp: ts,
+    });
+  });
+  incidents.sort((a, b) => b.timestamp - a.timestamp);
+
+  if (!coworkers.length && !incidents.length) {
+    throw new Error('That file is empty — nothing to import.');
+  }
+  return { coworkers, incidents };
+}
+
 // ---- derive people (score, this-week vs last-week trend, heat) -------------
 export function computePeople(coworkers, incidents, now = Date.now()) {
   const thisWeekStart = startOfWeek(now);
