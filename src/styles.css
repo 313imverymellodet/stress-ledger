@@ -15,14 +15,14 @@
   --board-line:   rgba(255,255,255,.09);
   --board-ink:    #f5f5f7;
   --board-faint:  #98989f;
-  --board-dim:    #6a6a70;
+  --board-dim:    #8a8a90;   /* AA-contrast (>=4.5:1) muted text */
 
   /* ledger paper (signature receipt cards) */
   --paper:        #f4f1ea;
   --paper-2:      #ece8de;
   --paper-line:   #ddd6c7;
   --paper-ink:    #1c1b18;
-  --paper-faint:  #8b8579;
+  --paper-faint:  #6c675b;   /* AA-contrast (>=4.5:1) muted text on cream */
 
   /* red ink accent (brand) */
   --ink:          #e0352a;
@@ -583,11 +583,17 @@ body{
 /* ---- slip delete control + inline confirm ---- */
 .slip-meta-right{ display:flex; align-items:center; gap:10px; }
 .slip-del{
-  cursor:pointer; border:0; background:rgba(28,27,24,.06); color:var(--paper-faint);
-  width:24px; height:24px; border-radius:50%; font-size:12px; line-height:1;
+  position:relative; cursor:pointer; border:0; background:rgba(28,27,24,.08);
+  color:var(--paper-ink); width:28px; height:28px; border-radius:50%;
+  font-size:13px; line-height:1; opacity:.65;
   display:grid; place-items:center; transition:.15s var(--spring);
 }
-.slip-del:hover{ background:var(--ink); color:#fff; }
+/* invisible 44x44 touch target without enlarging the visual control */
+.slip-del::after{
+  content:""; position:absolute; top:50%; left:50%;
+  width:44px; height:44px; transform:translate(-50%,-50%);
+}
+.slip-del:hover{ background:var(--ink); color:#fff; opacity:1; }
 
 .confirm-bar{
   display:flex; align-items:center; justify-content:space-between; gap:12px;
@@ -612,7 +618,8 @@ body{
 .entry-undo{
   flex:0 0 auto; cursor:pointer; border:0; background:transparent;
   color:var(--board-dim); font-family:var(--mono); font-size:11px; letter-spacing:.02em;
-  padding:7px 9px; border-radius:9px; white-space:nowrap; transition:.15s var(--spring);
+  padding:7px 10px; min-height:44px; border-radius:9px; white-space:nowrap;
+  display:inline-flex; align-items:center; transition:.15s var(--spring);
 }
 .entry-undo:hover{ color:#fff; background:rgba(255,69,58,.18); }
 .feed-empty{
@@ -666,6 +673,51 @@ body{
 /* ---- patterns empty ---- */
 .patterns-empty .panel-cap{ margin-top:10px; }
 .patterns-empty .panel-cap b{ color:var(--board-ink); font-weight:600; }
+
+/* ---- worst-day: keep the bar value clear of the "Worst" badge ---- */
+.day.worst .day-val{ top:8px; color:#fff; }
+
+/* ============================================================
+   RESPONSIVE LAYOUT — a single phone column on small screens,
+   two scaled-up columns on wider screens so desktop isn't just
+   zoomed mobile. Wrappers collapse to `display:contents` on
+   phones, so the mobile source order is unchanged.
+   ============================================================ */
+.people-grid, .people-grid > .col, .patterns-grid{ display:contents; }
+/* keep the gap above each column's first heading on mobile */
+.people-grid > .col > .section-head:first-child{ margin-top:26px; }
+
+@media (min-width:880px){
+  /* becomes a centred, framed desktop column instead of a thin strip */
+  .phone{
+    max-width:1000px;
+    border-left:.5px solid var(--board-line);
+    border-right:.5px solid var(--board-line);
+  }
+  .scroll{ padding-left:30px; padding-right:30px; }
+
+  /* scale type up a notch */
+  .reign{ padding:26px 28px 24px; }
+  .reign-name{ font-size:46px; }
+  .reign-epithet{ font-size:16px; }
+  .panel-title{ font-size:21px; }
+
+  /* People — ledger cards | recent feed, side by side */
+  .people-grid{ display:grid; grid-template-columns:1.05fr .95fr; gap:22px; align-items:start; }
+  .people-grid > .col{ display:block; min-width:0; }
+  .people-grid > .col > .section-head:first-child{ margin-top:18px; }
+
+  /* Patterns — heatmap on the left, triggers + worst-day stacked right */
+  .patterns-grid{ display:grid; grid-template-columns:1.05fr .95fr; gap:16px; align-items:start; }
+  .patterns-grid .panel{ margin-bottom:0; }
+  .panel--heat{ grid-column:1; grid-row:1 / span 2; }
+  .panel--trig{ grid-column:2; grid-row:1; }
+  .panel--day{ grid-column:2; grid-row:2; }
+
+  /* nav tabs shouldn't each stretch to half the window */
+  .nav{ justify-content:center; gap:28px; }
+  .nav .tab{ flex:0 0 auto; min-width:160px; }
+}
 
 /* ============================================================
    REDUCED MOTION — honour the user's preference

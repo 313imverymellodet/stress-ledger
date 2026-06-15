@@ -204,6 +204,8 @@ export function PeopleView({
     <div className="scroll">
       <ReignBanner person={reigning} hasPeople={people.length > 0} />
 
+      <div className="people-grid">
+      <div className="col col-ledger">
       <div className="section-head">
         <div className="section-title">The Ledger</div>
         <div className="section-meta">
@@ -217,6 +219,8 @@ export function PeopleView({
         <LedgerCard key={p.id} person={p} rank={i + 1} onLog={onLog} onDelete={onDelete} />
       ))}
 
+      </div>
+      <div className="col col-feed">
       <div className="section-head">
         <div className="section-title">Recent Incidents</div>
         <div className="section-meta">{incidents.length} total filed</div>
@@ -312,6 +316,9 @@ export function PeopleView({
               Shred the whole file
             </button>
           ))}
+      </div>
+
+      </div>
       </div>
 
       <div className="spacer" />

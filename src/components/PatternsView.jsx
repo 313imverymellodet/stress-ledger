@@ -47,8 +47,10 @@ export function PatternsView({ patterns, peakLabel }) {
         </div>
       </div>
 
+      {/* charts (single column on mobile, two columns on desktop) */}
+      <div className="patterns-grid">
       {/* time-of-day heatmap */}
-      <div className="panel">
+      <div className="panel panel--heat">
         <div className="panel-title">When stress lands</div>
         <div className="panel-sub">All week · by time of day</div>
         <div className="heatmap">
@@ -87,7 +89,7 @@ export function PatternsView({ patterns, peakLabel }) {
       </div>
 
       {/* top triggers */}
-      <div className="panel">
+      <div className="panel panel--trig">
         <div className="panel-title">What sets it off</div>
         <div className="panel-sub">Top triggers, by frequency</div>
         {topTriggers.map(t => (
@@ -104,7 +106,7 @@ export function PatternsView({ patterns, peakLabel }) {
       </div>
 
       {/* worst day of the week */}
-      <div className="panel">
+      <div className="panel panel--day">
         <div className="panel-title">Worst day of the week</div>
         <div className="panel-sub">Average stress points by weekday</div>
         <div className="days">
@@ -130,6 +132,7 @@ export function PatternsView({ patterns, peakLabel }) {
             );
           })}
         </div>
+      </div>
       </div>
       <div className="spacer" />
     </div>

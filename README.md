@@ -75,10 +75,11 @@ Imported files are validated defensively: anything that isn't a real Stress Ledg
 - All reads/writes are wrapped in `try/catch`. If storage is unavailable or corrupt, the app starts from a clean empty state rather than crashing.
 - Logging an incident with multiple trigger chips files **one incident per chip** (each tagged offense is its own line); logging with no chips files a single untagged incident.
 
-## Accessibility & polish
+## Accessibility & responsive
 
-- Mobile-first and responsive (capped to a phone-width column on larger screens).
-- Keyboard accessible with visible focus rings; the logging sheet closes on **Esc** and moves focus inward on open.
+- **Mobile-first, with a real desktop layout** — on phones it's a single column; at **≥880px** it becomes a centered, framed **two-column** layout (ledger cards beside the recent feed; the heatmap beside the trigger/weekday charts) with scaled-up type, so desktop isn't just zoomed-in mobile.
+- Pinch-zoom is allowed, interactive controls are **≥44px** touch targets, and muted text meets **WCAG AA** contrast (≥4.5:1).
+- Keyboard accessible with visible focus rings; the logging sheet closes on **Esc**, moves focus inward on open, and **returns focus** to the button that opened it on close.
 - Honors **`prefers-reduced-motion`** (drops the stamp slam, shake, and splat).
 - Coworker names are rendered as text (never as HTML), so they can't inject markup.
 

@@ -10,6 +10,8 @@ export function TagSheet({ open, target, onClose, onFile }) {
   const [picked, setPicked] = useState([]);
   const sheetRef = useRef(null);
   const fileBtnRef = useRef(null);
+  const triggerRef = useRef(null);
+  const wasOpen = useRef(false);
 
   // sync severity from the button that opened the sheet
   useEffect(() => {
@@ -19,9 +21,11 @@ export function TagSheet({ open, target, onClose, onFile }) {
     }
   }, [open, target]);
 
-  // close on Escape; move focus into the sheet when it opens
+  // close on Escape; move focus into the sheet when it opens.
+  // Depends only on `open` so unrelated re-renders don't yank focus around.
   useEffect(() => {
     if (!open) return;
+    triggerRef.current = document.activeElement; // the button that opened the sheet
     const onKey = e => {
       if (e.key === 'Escape') onClose();
     };
@@ -33,7 +37,17 @@ export function TagSheet({ open, target, onClose, onFile }) {
       document.removeEventListener('keydown', onKey);
       clearTimeout(t);
     };
-  }, [open, onClose]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // restore focus to the trigger when the sheet closes
+  useEffect(() => {
+    if (wasOpen.current && !open) {
+      const el = triggerRef.current;
+      if (el && typeof el.focus === 'function') el.focus();
+    }
+    wasOpen.current = open;
+  }, [open]);
 
   function toggleChip(id) {
     setPicked(p => (p.includes(id) ? p.filter(x => x !== id) : [...p, id]));
